@@ -1,3 +1,3 @@
-module alog
+module golang-async-logging-library
 
-go 1.14
+go 1.19
