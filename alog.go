@@ -42,6 +42,7 @@ func New(w io.Writer) *Alog {
 // the caller from being blocked.
 func (al Alog) Start() {
 	wg := &sync.WaitGroup{}
+loop:
 	for {
 		select {
 		case msg := <-al.msgCh:
@@ -50,6 +51,7 @@ func (al Alog) Start() {
 		case <-al.shutdownCh:
 			wg.Wait()
 			al.shutdown()
+			break loop
 		}
 	}
 }
