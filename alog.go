@@ -30,11 +30,11 @@ func New(w io.Writer) *Alog {
 	}
 	return &Alog{
 		dest:               w,
-		msgCh:              make(chan string),
-		errorCh:            make(chan error),
 		m:                  &sync.Mutex{},
+		msgCh:              make(chan string),
 		shutdownCh:         make(chan struct{}),
 		shutdownCompleteCh: make(chan struct{}),
+		errorCh:            make(chan error),
 	}
 }
 
@@ -42,7 +42,6 @@ func New(w io.Writer) *Alog {
 // the caller from being blocked.
 func (al Alog) Start() {
 	wg := &sync.WaitGroup{}
-loop:
 	for {
 		select {
 		case msg := <-al.msgCh:
@@ -51,7 +50,6 @@ loop:
 		case <-al.shutdownCh:
 			wg.Wait()
 			al.shutdown()
-			break loop
 		}
 	}
 }
@@ -73,7 +71,6 @@ func (al Alog) write(msg string, wg *sync.WaitGroup) {
 			al.errorCh <- err
 		}(err)
 	}
-	al.msgCh <- al.formatMessage(msg)
 }
 
 func (al Alog) shutdown() {
@@ -89,7 +86,7 @@ func (al Alog) MessageChannel() chan<- string {
 // ErrorChannel returns a channel that will be populated when an error is raised during a write operation.
 // This channel should always be monitored in some way to prevent deadlock goroutines from being generated
 // when errors occur.
-func (al Alog) ErrorChannel() chan<- error {
+func (al Alog) ErrorChannel() <-chan error {
 	return al.errorCh
 }
 
@@ -97,6 +94,7 @@ func (al Alog) ErrorChannel() chan<- error {
 // The logger will no longer function after this method has been called.
 func (al Alog) Stop() {
 	al.shutdownCh <- struct{}{}
+
 	<-al.shutdownCompleteCh
 }
 
